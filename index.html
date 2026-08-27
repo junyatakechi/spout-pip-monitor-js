@@ -7,16 +7,16 @@
   body { margin: 0; background: #111; color: #eee; font-family: sans-serif; }
   #bar { display: flex; gap: 8px; padding: 8px; }
   select, button { padding: 4px 8px; }
-  video { display: block; width: 100%; height: auto; background: #000; }
   #notice, #error { padding: 0 8px; font-size: 13px; }
   #notice { color: #fc6; }
   #error { color: #f77; }
+  video { display: block; width: 100%; height: auto; background: #000; }
 </style>
 </head>
 <body>
   <div id="bar">
     <select id="devices"></select>
-    <button id="mirror">左右反転: OFF</button>
+    <button id="mirror"></button>
     <button id="pip">PiPで表示</button>
   </div>
   <div id="notice"></div>
@@ -24,6 +24,8 @@
   <video id="view" autoplay playsinline muted></video>
 
 <script>
+const STORE = 'spout-pip-monitor';
+
 const sel = document.getElementById('devices');
 const view = document.getElementById('view');
 const mirrorBtn = document.getElementById('mirror');
@@ -39,6 +41,17 @@ const ctx = canvas.getContext('2d');
 let stream;
 let mirrored = false;
 
+// localStorage は file:// や Cookie 制限下で例外を投げうるので、失敗しても動くようにする。
+function load() {
+  try { return JSON.parse(localStorage.getItem(STORE)) || {}; } catch { return {}; }
+}
+
+function save() {
+  try {
+    localStorage.setItem(STORE, JSON.stringify({ mirrored, deviceId: sel.value }));
+  } catch {}
+}
+
 function drawFrame() {
   if (!src.videoWidth) return;
   canvas.width = src.videoWidth;
@@ -50,6 +63,10 @@ function drawFrame() {
 function loop() {
   drawFrame();
   requestAnimationFrame(loop);
+}
+
+function renderMirror() {
+  mirrorBtn.textContent = mirrored ? '左右反転: ON' : '左右反転: OFF';
 }
 
 async function listDevices() {
@@ -73,23 +90,42 @@ async function start(deviceId) {
     video: deviceId ? { deviceId: { exact: deviceId } } : true
   });
   src.srcObject = stream;
-  await src.play();
+  // 切り替えが続くと直前の play() が新しい load に中断されるが、
+  // 新しいストリームは再生されるので AbortError は無視してよい。
+  try { await src.play(); } catch (e) { if (e.name !== 'AbortError') throw e; }
   drawFrame();
   if (!view.srcObject) view.srcObject = canvas.captureStream();
 }
 
+async function init() {
+  const saved = load();
+  mirrored = saved.mirrored === true;
+  renderMirror();
+
+  try {
+    await start(saved.deviceId);
+  } catch (e) {
+    if (!saved.deviceId) throw e;
+    await start(); // 前回のカメラが見つからないときは既定のカメラに戻す
+  }
+
+  await listDevices();
+  const used = stream.getVideoTracks()[0].getSettings().deviceId;
+  if (used) sel.value = used;
+  save();
+}
+
 mirrorBtn.onclick = () => {
   mirrored = !mirrored;
-  mirrorBtn.textContent = mirrored ? '左右反転: ON' : '左右反転: OFF';
+  renderMirror();
+  save();
 };
 
-sel.onchange = () => start(sel.value).catch(e => error.textContent = e);
+sel.onchange = () => start(sel.value).then(save).catch(e => error.textContent = e);
 document.getElementById('pip').onclick = () => view.requestPictureInPicture();
 
 loop();
-start()
-  .then(listDevices)
-  .catch(e => error.textContent = e);
+init().catch(e => error.textContent = e);
 </script>
 </body>
 </html>
