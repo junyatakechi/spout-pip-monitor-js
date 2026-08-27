@@ -39,6 +39,12 @@ python -m http.server 8777 --bind 127.0.0.1
 
 GitHub Pages などに置いて `https://` で開く方法でも同じく解決します。
 
+## バージョン表記
+
+画面右上に `v1.0.0 · 2026-08-28 08:58` のように、バージョンと配信ファイルの更新時刻を表示します。時刻は `document.lastModified` から取っており、GitHub Pages ではデプロイ時刻になるため、番号の付け替えを忘れてもデプロイが反映されたか判別できます。
+
+GitHub Pages は `Cache-Control: max-age=600` を返すので、push 後もブラウザのキャッシュで最大10分は古いページが表示されます。時刻が更新されないときは Ctrl+Shift+R で再読み込みしてください。
+
 ## 仕組み
 
 `navigator.mediaDevices.enumerateDevices()` でビデオ入力を列挙し、選択されたデバイスを `getUserMedia()` で取得します。取得した映像は canvas に描き直し、`canvas.captureStream()` を `<video>` に流して `requestPictureInPicture()` を呼びます。ライブラリ非依存の130行ほどのコードです。
