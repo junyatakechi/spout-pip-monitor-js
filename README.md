@@ -1,4 +1,4 @@
-# spout-pip-monitor-local-js
+# spout-pip-monitor-js
 
 SpoutCam などの DirectShow 仮想カメラの映像を Chrome で表示し、Picture-in-Picture で常に最前面に表示するための1ファイルのページです。
 
@@ -23,6 +23,8 @@ Windows には仮想カメラを最前面の小窓で確認する手段が意外
 
 PiP ウィンドウは常に最前面に表示され、ドラッグで移動、ドラッグで拡大縮小できます。
 
+選んだカメラと左右反転の状態は localStorage に保存され、次に開いたときに復元されます。保存したカメラが見つからない場合は既定のカメラで起動し、保存内容もそれに合わせて更新されます。
+
 ### file:// で開く場合の制限
 
 `file://` のままでも映像は表示できます。`file:` スキームは [Secure Contexts 仕様](https://w3c.github.io/webappsec-secure-contexts/) で "Potentially Trustworthy" と定められているため、`getUserMedia()` 自体は利用できます。
@@ -39,7 +41,7 @@ GitHub Pages などに置いて `https://` で開く方法でも同じく解決�
 
 ## 仕組み
 
-`navigator.mediaDevices.enumerateDevices()` でビデオ入力を列挙し、選択されたデバイスを `getUserMedia()` で取得します。取得した映像は canvas に描き直し、`canvas.captureStream()` を `<video>` に流して `requestPictureInPicture()` を呼びます。ライブラリ非依存の80行ほどのコードです。
+`navigator.mediaDevices.enumerateDevices()` でビデオ入力を列挙し、選択されたデバイスを `getUserMedia()` で取得します。取得した映像は canvas に描き直し、`canvas.captureStream()` を `<video>` に流して `requestPictureInPicture()` を呼びます。ライブラリ非依存の130行ほどのコードです。
 
 ### なぜ canvas を挟むのか
 
