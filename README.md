@@ -23,13 +23,19 @@ Windows には仮想カメラを最前面の小窓で確認する手段が意外
 
 PiP ウィンドウは常に最前面に表示され、ドラッグで移動、ドラッグで拡大縮小できます。
 
-`file://` のまま動きます。`file:` スキームは [Secure Contexts 仕様](https://w3c.github.io/webappsec-secure-contexts/) で "Potentially Trustworthy" と定められており、`getUserMedia()` が利用できるためです。ローカルサーバーを立てる必要はありません。
+### file:// で開く場合の制限
 
-ただし `file://` はホストを持たない特殊なオリジンのため、環境によってはカメラの許可が記憶されず、開くたびに許可ダイアログが出ることがあります。煩わしい場合は任意のローカルサーバーから配信してください。
+`file://` のままでも映像は表示できます。`file:` スキームは [Secure Contexts 仕様](https://w3c.github.io/webappsec-secure-contexts/) で "Potentially Trustworthy" と定められているため、`getUserMedia()` 自体は利用できます。
+
+ただし **カメラの切り替えはできません**。`file://` はオリジンが `null` になるため、Chrome は getUserMedia が成功した後も `enumerateDevices()` を制限し続け、`deviceId` と `label` を空文字で返します（[Chromium 開発陣の説明](https://groups.google.com/g/discuss-webrtc/c/qGdSM-Cs3bc/m/1V0iqPXVCwAJ)）。既定のカメラだけで用が足りるなら `file://` で問題ありません。
+
+切り替えたい場合は、オリジンを持つ場所から開いてください。カメラの許可も記憶されるようになります。
 
 ```
 python -m http.server 8777 --bind 127.0.0.1
 ```
+
+GitHub Pages などに置いて `https://` で開く方法でも同じく解決します。
 
 ## 仕組み
 

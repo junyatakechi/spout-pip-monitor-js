@@ -7,8 +7,10 @@
   body { margin: 0; background: #111; color: #eee; font-family: sans-serif; }
   #bar { display: flex; gap: 8px; padding: 8px; }
   select, button { padding: 4px 8px; }
-  video { display: block; width: 100%; background: #000; }
-  #error { padding: 8px; color: #f77; }
+  video { display: block; width: 100%; height: auto; background: #000; }
+  #notice, #error { padding: 0 8px; font-size: 13px; }
+  #notice { color: #fc6; }
+  #error { color: #f77; }
 </style>
 </head>
 <body>
@@ -17,13 +19,15 @@
     <button id="mirror">左右反転: OFF</button>
     <button id="pip">PiPで表示</button>
   </div>
-  <video id="view" autoplay playsinline muted></video>
+  <div id="notice"></div>
   <div id="error"></div>
+  <video id="view" autoplay playsinline muted></video>
 
 <script>
 const sel = document.getElementById('devices');
 const view = document.getElementById('view');
 const mirrorBtn = document.getElementById('mirror');
+const notice = document.getElementById('notice');
 const error = document.getElementById('error');
 
 // PiP ウィンドウには video 要素の CSS が適用されないため、
@@ -50,10 +54,17 @@ function loop() {
 
 async function listDevices() {
   const devices = await navigator.mediaDevices.enumerateDevices();
+  const cams = devices.filter(d => d.kind === 'videoinput');
   sel.innerHTML = '';
-  for (const d of devices.filter(d => d.kind === 'videoinput')) {
-    sel.add(new Option(d.label || d.deviceId, d.deviceId));
-  }
+  cams.forEach((d, i) => sel.add(new Option(d.label || `カメラ ${i + 1}`, d.deviceId)));
+
+  // file:// はオリジンが null になるため、Chrome は getUserMedia が成功した後も
+  // enumerateDevices() を制限し、deviceId と label を空文字で返す。
+  // その状態ではデバイスを指定できないので、切り替えは成立しない。
+  const switchable = cams.some(d => d.deviceId);
+  sel.disabled = !switchable;
+  notice.textContent = switchable ? ''
+    : 'デバイスを切り替えるには http://localhost などのオリジンから開いてください。file:// では Chrome が deviceId を返しません。';
 }
 
 async function start(deviceId) {
