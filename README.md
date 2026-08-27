@@ -18,7 +18,8 @@ Windows には仮想カメラを最前面の小窓で確認する手段が意外
 2. `index.html` を Chrome で開く
 3. カメラの使用を許可する
 4. プルダウンから仮想カメラ（例: `SPOUTCAM`）を選ぶ
-5. 「PiPで表示」を押す
+5. 鏡として使う場合は「左右反転」を押す
+6. 「PiPで表示」を押す
 
 PiP ウィンドウは常に最前面に表示され、ドラッグで移動、ドラッグで拡大縮小できます。
 
@@ -32,7 +33,13 @@ python -m http.server 8777 --bind 127.0.0.1
 
 ## 仕組み
 
-`navigator.mediaDevices.enumerateDevices()` でビデオ入力を列挙し、選択されたデバイスを `getUserMedia()` で取得して `<video>` に流し、`requestPictureInPicture()` を呼ぶだけです。全体で50行ほどのライブラリ非依存のコードです。
+`navigator.mediaDevices.enumerateDevices()` でビデオ入力を列挙し、選択されたデバイスを `getUserMedia()` で取得します。取得した映像は canvas に描き直し、`canvas.captureStream()` を `<video>` に流して `requestPictureInPicture()` を呼びます。ライブラリ非依存の80行ほどのコードです。
+
+### なぜ canvas を挟むのか
+
+左右反転を CSS の `transform: scaleX(-1)` で行うと、ページ上では反転しますが **PiP ウィンドウには反映されません**。[Picture-in-Picture 仕様](https://www.w3.org/TR/picture-in-picture/)は video 要素に適用されたスタイルを PiP ウィンドウに適用してはならないと定めており、Chromium はこれに従っています（Firefox は `scaleX(-1)` に限り適用するため、挙動が分かれます）。
+
+鏡として使う以上、反転が効くべきなのは PiP ウィンドウの側です。そのため canvas 側で `ctx.setTransform()` によりフレーム自体を反転させ、反転済みの映像を PiP に渡しています。ページ上のプレビューと PiP ウィンドウが常に同じ絵になるという利点もあります。
 
 ## なぜ Chrome なのか
 

@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<title>SpoutCam PiP</title>
+<title>Spout PiP Monitor</title>
 <style>
   body { margin: 0; background: #111; color: #eee; font-family: sans-serif; }
   #bar { display: flex; gap: 8px; padding: 8px; }
@@ -14,6 +14,7 @@
 <body>
   <div id="bar">
     <select id="devices"></select>
+    <button id="mirror">左右反転: OFF</button>
     <button id="pip">PiPで表示</button>
   </div>
   <video id="view" autoplay playsinline muted></video>
@@ -22,8 +23,30 @@
 <script>
 const sel = document.getElementById('devices');
 const view = document.getElementById('view');
+const mirrorBtn = document.getElementById('mirror');
 const error = document.getElementById('error');
+
+// PiP ウィンドウには video 要素の CSS が適用されないため、
+// canvas に反転して描き直したフレームを PiP の映像源にする。
+const src = Object.assign(document.createElement('video'), { muted: true, playsInline: true });
+const canvas = document.createElement('canvas');
+const ctx = canvas.getContext('2d');
+
 let stream;
+let mirrored = false;
+
+function drawFrame() {
+  if (!src.videoWidth) return;
+  canvas.width = src.videoWidth;
+  canvas.height = src.videoHeight;
+  ctx.setTransform(mirrored ? -1 : 1, 0, 0, 1, mirrored ? canvas.width : 0, 0);
+  ctx.drawImage(src, 0, 0);
+}
+
+function loop() {
+  drawFrame();
+  requestAnimationFrame(loop);
+}
 
 async function listDevices() {
   const devices = await navigator.mediaDevices.enumerateDevices();
@@ -38,12 +61,21 @@ async function start(deviceId) {
   stream = await navigator.mediaDevices.getUserMedia({
     video: deviceId ? { deviceId: { exact: deviceId } } : true
   });
-  view.srcObject = stream;
+  src.srcObject = stream;
+  await src.play();
+  drawFrame();
+  if (!view.srcObject) view.srcObject = canvas.captureStream();
 }
+
+mirrorBtn.onclick = () => {
+  mirrored = !mirrored;
+  mirrorBtn.textContent = mirrored ? '左右反転: ON' : '左右反転: OFF';
+};
 
 sel.onchange = () => start(sel.value).catch(e => error.textContent = e);
 document.getElementById('pip').onclick = () => view.requestPictureInPicture();
 
+loop();
 start()
   .then(listDevices)
   .catch(e => error.textContent = e);
