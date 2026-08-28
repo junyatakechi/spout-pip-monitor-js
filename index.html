@@ -11,7 +11,8 @@
          display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden; }
   #bar { display: flex; gap: 8px; padding: 8px; flex: none; }
   select, button { padding: 4px 8px; }
-  #version { margin-left: auto; align-self: center; color: #888; font-size: 12px; }
+  #version { margin-left: auto; align-self: center; color: #888; font-size: 12px; text-decoration: none; }
+  #version:hover { color: #ccc; text-decoration: underline; }
   #notice, #error { padding: 0 8px; font-size: 13px; flex: none; }
   #notice { color: #fc6; }
   #error { color: #f77; }
@@ -24,14 +25,14 @@
     <select id="devices"></select>
     <button id="mirror"></button>
     <button id="pip"></button>
-    <span id="version"></span>
+    <a id="version" href="https://github.com/junyatakechi/spout-pip-monitor-js" target="_blank" rel="noopener"></a>
   </div>
   <div id="notice"></div>
   <div id="error"></div>
   <video id="view" autoplay playsinline muted></video>
 
 <script>
-const VERSION = 'v1.1.0';
+const VERSION = 'v1.1.1';
 const STORE = 'spout-pip-monitor';
 
 const sel = document.getElementById('devices');
