@@ -29,10 +29,10 @@
   </div>
   <div id="notice"></div>
   <div id="error"></div>
-  <video id="view" autoplay playsinline muted></video>
+  <video id="view" autoplay playsinline muted autopictureinpicture></video>
 
 <script>
-const VERSION = 'v1.2.0';
+const VERSION = 'v1.2.1';
 const STORE = 'spout-pip-monitor';
 
 const sel = document.getElementById('devices');
@@ -149,9 +149,13 @@ view.addEventListener('leavepictureinpicture', renderPip);
 
 // カメラを capture 中のページに限り、Chrome 120 以降はタブから離れたときに
 // この action を発火させる。ここでだけユーザー操作なしに PiP へ入れる。
-function enterPipFromMediaSession() {
+function enterPipFromMediaSession(details) {
+  // 切り分け用: 発火したかどうかを戻ってきたときに見えるようにしておく。
+  const reason = (details && details.enterPictureInPictureReason) || '不明';
+  notice.textContent = `自動PiP: 発火 (${reason}) ${new Date().toLocaleTimeString()}`;
   if (document.pictureInPictureElement) return;
-  view.requestPictureInPicture().catch(e => error.textContent = e);
+  view.requestPictureInPicture()
+    .catch(e => { notice.textContent = `自動PiP: 発火したが失敗 (${reason}) ${e}`; });
 }
 
 try {
