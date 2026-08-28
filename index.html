@@ -23,9 +23,9 @@
 <body>
   <div id="bar">
     <select id="devices"></select>
+    <button id="fullscreen">全画面</button>
     <button id="mirror"></button>
     <button id="pip"></button>
-    <button id="fullscreen">全画面</button>
     <a id="version" href="https://github.com/junyatakechi/spout-pip-monitor-js" target="_blank" rel="noopener"></a>
   </div>
   <div id="notice"></div>
@@ -33,7 +33,7 @@
   <video id="view" autoplay playsinline muted autopictureinpicture></video>
 
 <script>
-const VERSION = 'v1.3.0';
+const VERSION = 'v1.3.1';
 const STORE = 'spout-pip-monitor';
 
 const sel = document.getElementById('devices');
