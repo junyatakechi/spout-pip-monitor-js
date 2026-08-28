@@ -4,21 +4,26 @@
 <meta charset="utf-8">
 <title>Spout PiP Monitor</title>
 <style>
-  body { margin: 0; background: #111; color: #eee; font-family: sans-serif; }
-  #bar { display: flex; gap: 8px; padding: 8px; }
+  html, body { height: 100%; }
+  /* 縦にフレックスで積み、映像が残りの高さをすべて取る。
+     ボタンや通知の高さは flex が自動で差し引くので、固定値を持たない。 */
+  body { margin: 0; background: #111; color: #eee; font-family: sans-serif;
+         display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden; }
+  #bar { display: flex; gap: 8px; padding: 8px; flex: none; }
   select, button { padding: 4px 8px; }
   #version { margin-left: auto; align-self: center; color: #888; font-size: 12px; }
-  #notice, #error { padding: 0 8px; font-size: 13px; }
+  #notice, #error { padding: 0 8px; font-size: 13px; flex: none; }
   #notice { color: #fc6; }
   #error { color: #f77; }
-  video { display: block; width: 100%; height: auto; background: #000; }
+  /* 残りの領域に object-fit: contain で収める。縦横どちらが先に詰まっても全体が見える。 */
+  video { flex: 1; min-height: 0; width: 100%; background: #000; object-fit: contain; }
 </style>
 </head>
 <body>
   <div id="bar">
     <select id="devices"></select>
     <button id="mirror"></button>
-    <button id="pip">PiPで表示</button>
+    <button id="pip"></button>
     <span id="version"></span>
   </div>
   <div id="notice"></div>
@@ -26,12 +31,13 @@
   <video id="view" autoplay playsinline muted></video>
 
 <script>
-const VERSION = 'v1.0.0';
+const VERSION = 'v1.1.0';
 const STORE = 'spout-pip-monitor';
 
 const sel = document.getElementById('devices');
 const view = document.getElementById('view');
 const mirrorBtn = document.getElementById('mirror');
+const pipBtn = document.getElementById('pip');
 const notice = document.getElementById('notice');
 const error = document.getElementById('error');
 
@@ -70,6 +76,10 @@ function loop() {
 
 function renderMirror() {
   mirrorBtn.textContent = mirrored ? '左右反転: ON' : '左右反転: OFF';
+}
+
+function renderPip() {
+  pipBtn.textContent = document.pictureInPictureElement === view ? 'PiPを終了' : 'PiPで表示';
 }
 
 async function listDevices() {
@@ -125,7 +135,16 @@ mirrorBtn.onclick = () => {
 };
 
 sel.onchange = () => start(sel.value).then(save).catch(e => error.textContent = e);
-document.getElementById('pip').onclick = () => view.requestPictureInPicture();
+pipBtn.onclick = async () => {
+  try {
+    if (document.pictureInPictureElement) await document.exitPictureInPicture();
+    else await view.requestPictureInPicture();
+  } catch (e) { error.textContent = e; }
+};
+
+// PiP ウィンドウ側の閉じるボタンでも抜けられるので、状態はイベントから拾う。
+view.addEventListener('enterpictureinpicture', renderPip);
+view.addEventListener('leavepictureinpicture', renderPip);
 
 // document.lastModified は配信サーバーの Last-Modified を反映するので、
 // GitHub Pages ではデプロイ時刻になる。反映されたかの判別に使う。
@@ -135,6 +154,7 @@ document.getElementById('version').textContent =
   `${VERSION} · ${built.getFullYear()}-${pad(built.getMonth() + 1)}-${pad(built.getDate())}`
   + ` ${pad(built.getHours())}:${pad(built.getMinutes())}`;
 
+renderPip();
 loop();
 init().catch(e => error.textContent = e);
 </script>
