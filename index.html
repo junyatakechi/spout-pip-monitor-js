@@ -25,6 +25,7 @@
     <select id="devices"></select>
     <button id="mirror"></button>
     <button id="pip"></button>
+    <button id="fullscreen">全画面</button>
     <a id="version" href="https://github.com/junyatakechi/spout-pip-monitor-js" target="_blank" rel="noopener"></a>
   </div>
   <div id="notice"></div>
@@ -32,13 +33,14 @@
   <video id="view" autoplay playsinline muted autopictureinpicture></video>
 
 <script>
-const VERSION = 'v1.2.2';
+const VERSION = 'v1.3.0';
 const STORE = 'spout-pip-monitor';
 
 const sel = document.getElementById('devices');
 const view = document.getElementById('view');
 const mirrorBtn = document.getElementById('mirror');
 const pipBtn = document.getElementById('pip');
+const fsBtn = document.getElementById('fullscreen');
 const notice = document.getElementById('notice');
 const error = document.getElementById('error');
 
@@ -136,6 +138,9 @@ mirrorBtn.onclick = () => {
 };
 
 sel.onchange = () => start(sel.value).then(save).catch(e => error.textContent = e);
+// 全画面は映像だけにする。解除はブラウザ標準の Esc に任せる。
+fsBtn.onclick = () => view.requestFullscreen().catch(e => error.textContent = e);
+
 pipBtn.onclick = async () => {
   try {
     if (document.pictureInPictureElement) await document.exitPictureInPicture();
