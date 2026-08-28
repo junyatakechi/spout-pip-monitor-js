@@ -32,7 +32,7 @@
   <video id="view" autoplay playsinline muted></video>
 
 <script>
-const VERSION = 'v1.1.1';
+const VERSION = 'v1.2.0';
 const STORE = 'spout-pip-monitor';
 
 const sel = document.getElementById('devices');
@@ -146,6 +146,19 @@ pipBtn.onclick = async () => {
 // PiP ウィンドウ側の閉じるボタンでも抜けられるので、状態はイベントから拾う。
 view.addEventListener('enterpictureinpicture', renderPip);
 view.addEventListener('leavepictureinpicture', renderPip);
+
+// カメラを capture 中のページに限り、Chrome 120 以降はタブから離れたときに
+// この action を発火させる。ここでだけユーザー操作なしに PiP へ入れる。
+function enterPipFromMediaSession() {
+  if (document.pictureInPictureElement) return;
+  view.requestPictureInPicture().catch(e => error.textContent = e);
+}
+
+try {
+  navigator.mediaSession.setActionHandler('enterpictureinpicture', enterPipFromMediaSession);
+} catch {
+  // 未対応のブラウザでは TypeError になるが、手動の PiP は使えるので無視する。
+}
 
 // document.lastModified は配信サーバーの Last-Modified を反映するので、
 // GitHub Pages ではデプロイ時刻になる。反映されたかの判別に使う。
