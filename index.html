@@ -23,6 +23,7 @@
 <body>
   <div id="bar">
     <select id="devices"></select>
+    <button id="power"></button>
     <button id="fullscreen">全画面</button>
     <button id="mirror"></button>
     <button id="pip"></button>
@@ -33,11 +34,12 @@
   <video id="view" autoplay playsinline muted autopictureinpicture></video>
 
 <script>
-const VERSION = 'v1.3.1';
+const VERSION = 'v1.4.0';
 const STORE = 'spout-pip-monitor';
 
 const sel = document.getElementById('devices');
 const view = document.getElementById('view');
+const powerBtn = document.getElementById('power');
 const mirrorBtn = document.getElementById('mirror');
 const pipBtn = document.getElementById('pip');
 const fsBtn = document.getElementById('fullscreen');
@@ -52,6 +54,7 @@ const ctx = canvas.getContext('2d');
 
 let stream;
 let mirrored = false;
+let on = true;
 
 // localStorage は file:// や Cookie 制限下で例外を投げうるので、失敗しても動くようにする。
 function load() {
@@ -65,6 +68,14 @@ function save() {
 }
 
 function drawFrame() {
+  // 停止中は黒を描き続ける。captureStream は canvas に紐づくので、
+  // カメラを手放しても PiP ウィンドウは開いたまま黒い映像になる。
+  if (!on) {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    return;
+  }
   if (!src.videoWidth) return;
   canvas.width = src.videoWidth;
   canvas.height = src.videoHeight;
@@ -75,6 +86,10 @@ function drawFrame() {
 function loop() {
   drawFrame();
   requestAnimationFrame(loop);
+}
+
+function renderPower() {
+  powerBtn.textContent = on ? 'カメラ: ON' : 'カメラ: OFF';
 }
 
 function renderMirror() {
@@ -100,8 +115,15 @@ async function listDevices() {
     : 'デバイスを切り替えるには http://localhost などのオリジンから開いてください。file:// では Chrome が deviceId を返しません。';
 }
 
-async function start(deviceId) {
+// トラックを止めるとデバイスが解放され、タブのカメラ表示も消える。
+function stop() {
   if (stream) stream.getTracks().forEach(t => t.stop());
+  stream = null;
+  src.srcObject = null;
+}
+
+async function start(deviceId) {
+  stop();
   stream = await navigator.mediaDevices.getUserMedia({
     video: deviceId ? { deviceId: { exact: deviceId } } : true
   });
@@ -117,6 +139,7 @@ async function init() {
   const saved = load();
   mirrored = saved.mirrored === true;
   renderMirror();
+  renderPower();
 
   try {
     await start(saved.deviceId);
@@ -137,7 +160,25 @@ mirrorBtn.onclick = () => {
   save();
 };
 
-sel.onchange = () => start(sel.value).then(save).catch(e => error.textContent = e);
+// 停止中の選択は保存だけしておき、次にオンにしたときのカメラにする。
+sel.onchange = () => on ? start(sel.value).then(save).catch(e => error.textContent = e) : save();
+
+// オフはデバイスを手放す操作なので、自動 PiP は capture 中のページにしか
+// 発火しない以上、オフの間は働かない。PiP を開いたままなら黒い映像になる。
+powerBtn.onclick = async () => {
+  on = !on;
+  renderPower();
+  error.textContent = '';
+  if (!on) return stop();
+  try {
+    await start(sel.value);
+  } catch (e) {
+    error.textContent = e;
+    on = false;
+    renderPower();
+  }
+};
+
 // 全画面は映像だけにする。解除はブラウザ標準の Esc に任せる。
 fsBtn.onclick = () => view.requestFullscreen().catch(e => error.textContent = e);
 
